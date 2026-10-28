@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#efe8de">
+  <title>Примерка Юлки</title>
+  <link rel="icon" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <script type="module" crossorigin src="./assets/index-Tyu_z0o7.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-Da3C_a32.css">
+<link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
+<body class="preload">
+<div id="stage"><canvas id="view"></canvas></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M12 2c.6 3.9 2.4 6.6 5.4 8.1-3 1.5-4.8 4.2-5.4 8.1-.6-3.9-2.4-6.6-5.4-8.1 3-1.5 4.8-4.2 5.4-8.1z"/><circle cx="19" cy="19" r="1.6"/><circle cx="5" cy="4.5" r="1.1"/></svg></span>
+    <div class="brand-text"><b>Примерка Юлки</b><small>Эскиз на тело</small></div>
+    <button class="icon-btn" id="btnPanel" title="Скрыть меню"><i data-lucide="panel-left"></i></button>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="btnResetView" title="Вернуть вид"><i data-lucide="scan"></i></button>
+    <button class="pill-btn" id="btnShot"><i data-lucide="camera"></i><span>Снимок</span></button>
+  </div>
+</header>
+
+<aside class="panel models">
+  <div class="seg small" id="segVariant"><button data-v="1">Модель 1</button><button data-v="2">Модель 2</button></div>
+  <div class="seg" id="segSex"><button data-v="female">Женская</button><button data-v="male">Мужская</button></div>
+  <div class="tiles" id="tilesPart">
+    <button class="tile" data-v="body"><i data-lucide="person-standing"></i><span>Тело</span></button>
+    <button class="tile" data-v="arm"><i data-lucide="biceps-flexed"></i><span>Рука</span></button>
+    <button class="tile" data-v="leg"><i data-lucide="footprints"></i><span>Нога</span></button>
+  </div>
+  <div class="seg small" id="segSide"><button data-v="L">Левая</button><button data-v="R">Правая</button></div>
+  <div class="label">Цвет модели</div>
+  <div class="swatches" id="tones"></div>
+  <div class="label">Фон</div>
+  <div class="swatches" id="backgrounds"></div>
+</aside>
+
+<aside class="panel inspector" id="inspector">
+  <div class="insp-head">
+    <div class="thumb"><img id="inspThumb" alt=""></div>
+    <div class="insp-title"><b id="inspTitle">Эскиз</b><small id="inspDims"></small></div>
+    <button class="icon-btn flat" id="btnDeselect" title="Готово"><i data-lucide="x"></i></button>
+  </div>
+  <div class="field">
+    <div class="field-head"><span>Ширина</span><output id="outSize"></output></div>
+    <input type="range" id="rngSize" min="0" max="1000" step="1">
+  </div>
+  <div class="field">
+    <div class="field-head"><span>Поворот</span><output id="outRot"></output></div>
+    <input type="range" id="rngRot" min="-180" max="180" step="1">
+  </div>
+  <div class="field">
+    <div class="field-head"><span>Насыщенность</span><output id="outOpacity"></output></div>
+    <input type="range" id="rngOpacity" min="20" max="100" step="1">
+  </div>
+  <div class="actions-grid">
+    <button id="actWrap"><i data-lucide="refresh-ccw"></i><span>Обернуть вокруг</span></button>
+    <button id="actFlip"><i data-lucide="flip-horizontal-2"></i><span>Отразить</span></button>
+    <button id="actEdit"><i data-lucide="wand-sparkles"></i><span>Фон и цвет</span></button>
+    <button id="actDup"><i data-lucide="copy"></i><span>Копия</span></button>
+  </div>
+  <button class="danger-btn" id="actDelete"><i data-lucide="trash-2"></i><span>Удалить эскиз</span></button>
+  <p class="tip">Тяните эскиз пальцем. Двумя пальцами на эскизе — размер и поворот.</p>
+</aside>
+
+<div class="dock">
+  <div class="layers" id="layers"></div>
+  <button class="fab" id="btnAdd"><i data-lucide="image-plus"></i><span>Добавить эскиз</span></button>
+</div>
+
+<div class="hint" id="hint"><span id="hintText"></span><button id="hintCancel" class="hint-x" hidden>Отмена</button></div>
+<div class="loader" id="loader"><div class="spinner"></div><span>Загружаю модель…</span></div>
+<input type="file" id="file" accept="image/*" hidden>
+
+<div class="sheet-backdrop" id="sheet">
+  <div class="sheet">
+    <div class="sheet-preview bg-checker" id="sheetPreview">
+      <canvas id="previewCanvas"></canvas>
+      <div class="preview-bg" id="previewBg">
+        <button data-bg="checker" title="Прозрачность"></button>
+        <button data-bg="skin" title="На коже"></button>
+        <button data-bg="dark" title="Тёмный"></button>
+      </div>
+    </div>
+    <div class="sheet-side">
+      <h2 id="sheetTitle">Подготовка эскиза</h2>
+      <p class="sheet-sub">Белый или серый лист станет прозрачным, останутся только линии.</p>
+      <label class="switch-row">
+        <span><b>Убрать фон</b><small>для фото и сканов на бумаге</small></span>
+        <input type="checkbox" id="optRemove"><i class="switch"></i>
+      </label>
+      <div class="field" id="fieldStrength">
+        <div class="field-head"><span>Чистка фона</span><output id="outStrength"></output></div>
+        <input type="range" id="optStrength" min="0" max="100" step="1">
+        <div class="range-legend"><span>бережно</span><span>сильно</span></div>
+      </div>
+      <div class="field" id="fieldMode">
+        <div class="field-head"><span>Линии</span></div>
+        <div class="seg" id="segMode"><button data-v="ink">Чернила</button><button data-v="original">Как на фото</button></div>
+      </div>
+      <div class="field" id="fieldInk">
+        <div class="field-head"><span>Цвет чернил</span></div>
+        <div class="swatches" id="inks"></div>
+      </div>
+      <div class="sheet-actions">
+        <button class="ghost-btn" id="btnSheetCancel">Отмена</button>
+        <button class="primary-btn" id="btnSheetOk">Нанести на тело</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+</body>
+</html>
