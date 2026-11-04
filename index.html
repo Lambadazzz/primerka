@@ -7,9 +7,9 @@
   <title>Примерка Юлки</title>
   <link rel="icon" href="./icon.svg">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-  <script type="module" crossorigin src="./assets/index-HYoqiyiW.js"></script>
+  <script type="module" src="./assets/app.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-dcXq09Rf.css">
-<link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
+<link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./assets/editor.css"></head>
 <body class="preload">
 <div id="stage"><canvas id="view"></canvas></div>
 
@@ -19,14 +19,14 @@
     <div class="brand-text"><b>Примерка Юлки</b><small>Эскиз на тело</small></div>
     <button class="icon-btn" id="btnPanel" title="Скрыть меню"><i data-lucide="panel-left"></i></button>
   </div>
-  <div class="top-actions">
+  <div class="top-actions"><button class="pill-btn" id="btnPaint">✎ <span>Рисовать</span></button>
     <button class="icon-btn" id="btnResetView" title="Вернуть вид"><i data-lucide="scan"></i></button>
     <button class="pill-btn" id="btnShot"><i data-lucide="camera"></i><span>Снимок</span></button>
   </div>
 </header>
 
 <aside class="panel models">
-  <div class="seg small" id="segVariant"><button data-v="1">Модель 1</button><button data-v="2">Модель 2</button></div>
+  <div class="seg small" id="segVariant"><button data-v="1">Модель 1</button><button data-v="2">Модель 2</button><button data-v="3">Руки по швам</button></div>
   <div class="seg" id="segSex"><button data-v="female">Женская</button><button data-v="male">Мужская</button></div>
   <div class="tiles" id="tilesPart">
     <button class="tile" data-v="body"><i data-lucide="person-standing"></i><span>Тело</span></button>
