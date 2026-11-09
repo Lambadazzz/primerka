@@ -5,6 +5,29 @@
 
 #paintEditor .paint-primary{color:#fff}
 
+#clearViewerDialog {
+  width: min(380px, calc(100vw - 28px));
+  padding: 20px;
+  border: 1px solid var(--paint-line);
+  border-radius: 18px;
+  background: var(--paint-paper);
+  color: var(--paint-ink);
+}
+#clearViewerDialog::backdrop { background: #211c1955; }
+#clearViewerTitle { margin: 0 0 16px; font-size: 19px; }
+#clearViewerOptions { display: grid; gap: 7px; }
+#clearViewerDialog button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--paint-line);
+  border-radius: 9px;
+  background: #fffdf9;
+  font: inherit;
+}
+.clear-viewer-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+#clearViewerDialog #clearViewerConfirm { background: #983c30; color: #fff; }
+#clearViewerError { color: #983c30; }
+
 :root {
   --viewer-menu-bottom: calc(var(--gap) + env(safe-area-inset-bottom) + var(--viewer-dock-height, 74px) + 8px);
   --viewer-menu-height: calc(100dvh - var(--viewer-menu-bottom) - 72px - env(safe-area-inset-top));
