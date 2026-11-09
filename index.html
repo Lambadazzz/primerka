@@ -17,15 +17,15 @@
   <div class="brand">
     <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M12 2c.6 3.9 2.4 6.6 5.4 8.1-3 1.5-4.8 4.2-5.4 8.1-.6-3.9-2.4-6.6-5.4-8.1 3-1.5 4.8-4.2 5.4-8.1z"/><circle cx="19" cy="19" r="1.6"/><circle cx="5" cy="4.5" r="1.1"/></svg></span>
     <div class="brand-text"><b>Примерка Юлки</b><small>Эскиз на тело</small></div>
-    <button class="icon-btn" id="btnPanel" title="Скрыть меню"><i data-lucide="panel-left"></i></button>
+    <button class="icon-btn" id="btnPanel" title="Скрыть меню" aria-controls="modelProperties"><i data-lucide="panel-left"></i></button>
   </div>
   <div class="top-actions"><button class="pill-btn" id="btnPaint">✎ <span>Рисовать</span></button>
     <button class="icon-btn" id="btnResetView" title="Вернуть вид"><i data-lucide="scan"></i></button>
-    <button class="pill-btn" id="btnShot"><i data-lucide="camera"></i><span>Снимок</span></button>
+    <button class="pill-btn" id="btnShot" aria-label="Снимок"><i data-lucide="camera"></i><span>Снимок</span></button>
   </div>
 </header>
 
-<aside class="panel models">
+<aside class="panel models" id="modelProperties">
   <div class="seg small" id="segVariant"><button data-v="1">Модель 1</button><button data-v="2">Модель 2</button><button data-v="3">Руки по швам</button></div>
   <div class="seg" id="segSex"><button data-v="female">Женская</button><button data-v="male">Мужская</button></div>
   <div class="tiles" id="tilesPart">
