@@ -10,7 +10,7 @@
   <script type="module" src="./assets/app.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-dcXq09Rf.css">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./assets/editor.css"></head>
-<body class="preload">
+<body class="preload panel-hidden">
 <div id="stage"><canvas id="view"></canvas></div>
 
 <header class="topbar">
@@ -19,15 +19,18 @@
     <div class="brand-text"><b>Примерка Юлки</b><small>Эскиз на тело</small></div>
   </div>
   <nav class="tool-rail" aria-label="Инструменты примерки">
-    <button class="icon-btn" id="btnPanel" type="button" aria-label="Скрыть свойства модели" aria-controls="modelProperties"><i data-lucide="panel-left"></i></button>
+    <div class="tool-list">
     <button class="icon-btn" id="btnProjects" type="button" aria-label="Проекты" title="Проекты и экспорт"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></button>
     <button class="icon-btn" id="btnPaint" type="button" aria-label="Рисовать" title="Рисовать"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l1-5L16 4a2.8 2.8 0 0 1 4 4L9 19Z"/></svg></button>
     <button class="icon-btn" id="btnResetView" type="button" aria-label="Вернуть вид" title="Вернуть вид"><i data-lucide="scan"></i></button>
     <button class="icon-btn" id="btnShot" type="button" aria-label="Снимок" title="Снимок"><i data-lucide="camera"></i></button>
     <button class="icon-btn insp-btn" id="btnInsp" type="button" title="Настройки эскиза" aria-label="Настройки эскиза" aria-controls="inspector" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h4m4 0h10M7 3v6m-4 3h11m4 0h3m-7-3v6M3 18h4m4 0h10M7 15v6"/></svg></button>
+    </div>
+    <button class="icon-btn" id="btnPanel" type="button" aria-label="Показать свойства модели" aria-controls="modelProperties" aria-expanded="false"><i data-lucide="panel-left"></i></button>
   </nav>
 </header>
 
+<div id="dismissViewerMenu" aria-hidden="true" hidden></div>
 <aside class="panel models" id="modelProperties">
   <div class="seg small" id="segVariant"><button data-v="1">Модель 1</button><button data-v="2">Модель 2</button><button data-v="3">Руки по швам</button></div>
   <div class="seg" id="segSex"><button data-v="female">Женская</button><button data-v="male">Мужская</button></div>
