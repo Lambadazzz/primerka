@@ -61,7 +61,11 @@
 }
 .tool-rail #btnPanel { margin-inline-start: 0; }
 .tool-rail #btnPanel.on { background: var(--ink); color: #f8f2ea; }
-.tool-rail .icon-btn svg {
+#btnSettings {
+  pointer-events: auto;
+  margin-inline-end: env(safe-area-inset-right);
+}
+.tool-rail .icon-btn svg, #btnSettings svg {
   width: 19px;
   height: 19px;
   fill: none;
@@ -134,3 +138,91 @@ input[type=range]::-moz-range-thumb { pointer-events: auto; touch-action: none; 
   .tool-rail { gap: 2px; }
   .tool-rail .icon-btn { height: 38px; }
 }
+
+.primerka-tour,
+.primerka-settings {
+  color: var(--paint-ink);
+  font: 14px/1.55 Manrope, system-ui, sans-serif;
+}
+.primerka-tour {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+}
+.primerka-tour[open] { display: grid; place-items: center; }
+body:has(.primerka-tour[open]) #hint { visibility: hidden; }
+.primerka-tour[data-placement="top"] { align-items: start; }
+.primerka-tour[data-placement="bottom"] { align-items: end; }
+.primerka-tour::backdrop { background: transparent; }
+.primerka-tour:not([data-placement])::backdrop,
+.primerka-settings::backdrop { background: #211c198f; }
+.guide-spot {
+  position: absolute;
+  border: 2px solid #f4d3b4;
+  border-radius: 16px;
+  box-shadow: 0 0 0 150vmax #211c19ad, 0 0 20px #f4d3b499;
+  pointer-events: none;
+}
+.guide-card {
+  position: relative;
+  width: min(100%, 390px);
+  max-height: 100%;
+  overflow: auto;
+  border: 1px solid #e4d9cc;
+  border-radius: 22px;
+  background: var(--paint-paper);
+  box-shadow: 0 18px 70px #211c1955;
+}
+.guide-art { height: clamp(58px, 18dvh, 124px); background: linear-gradient(135deg, #57463c, #9e654d); }
+.guide-art svg { width: 100%; height: 100%; }
+.guide-content { padding: clamp(14px, 4vw, 24px); }
+.guide-label { color: #824c36; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.guide-card h2, .primerka-settings h2 { margin: 5px 0 8px; font-size: clamp(20px, 5vw, 26px); line-height: 1.2; }
+.guide-card h2:focus { outline: none; }
+.guide-card p { margin: 0; color: #65574d; }
+.guide-progress { display: flex; gap: 5px; margin: 16px 0 12px; }
+.guide-progress span { width: 7px; height: 7px; border-radius: 5px; background: #d9c9bc; }
+.guide-progress .current { width: 22px; background: #9e5c41; }
+.guide-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.guide-actions button, .primerka-settings button {
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.guide-primary { margin-inline-start: auto; background: #4b5345; color: white; }
+.guide-secondary { background: transparent; color: #65574d; }
+.guide-secondary:hover { background: #ede4da; }
+.primerka-settings {
+  width: min(390px, calc(100vw - 32px));
+  padding: 22px;
+  border: 1px solid var(--paint-line);
+  border-radius: 22px;
+  background: var(--paint-paper);
+}
+.primerka-settings form { display: grid; gap: 8px; }
+.primerka-settings .guide-restart {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 1px solid var(--paint-line);
+  background: #fffdf9;
+  text-align: left;
+  color: inherit;
+}
+.guide-restart small { display: block; color: #65574d; font-weight: 400; }
