@@ -4,3 +4,4 @@ source/dist/
 source/dist-android/
 source/.npm-cache/
 source/.qa-output/
+outputs/
