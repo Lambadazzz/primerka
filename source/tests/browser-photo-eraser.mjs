@@ -1,0 +1,117 @@
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+// Optional check: see ../BUILD.md. Uses an isolated browser profile and synthetic images.
+const output=process.env.PRIMERKA_TEST_OUTPUT||'.qa-output';await fs.mkdir(output,{recursive:true});
+const url=process.env.PRIMERKA_TEST_URL||'http://127.0.0.1:5180/';
+const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{})});
+const page=await browser.newPage({viewport:{width:1100,height:850}});
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+try{
+ await page.goto(url);
+ await page.waitForFunction(()=>window.__app?.model);
+ if(await page.getByRole('button',{name:'Пропустить',exact:true}).isVisible())await page.getByRole('button',{name:'Пропустить',exact:true}).click();
+ const legacy=await fs.readFile('src/legacy.js','utf8');
+ const processing=legacy.slice(legacy.indexOf('const FM='),legacy.indexOf('function gf('));
+ const maskModule=Buffer.from(await fs.readFile('src/photo-mask.js','utf8')).toString('base64');
+ const fixedFrame=await page.evaluate(async({processing,maskModule})=>{
+  const mod=await import('data:text/javascript;base64,'+maskModule);
+  const processPhoto=new Function('applyPhotoErase','cropPhotoFrame',processing+';return ho')(mod.applyPhotoErase,mod.cropPhotoFrame);
+  const src=document.createElement('canvas');src.width=src.height=400;
+  const ctx=src.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,400,400);ctx.fillStyle='#000';ctx.fillRect(100,100,200,200);
+  const params={removeBg:true,strength:.5,ink:'#000000',mode:'original'};
+  const before=processPhoto(src,params);params.eraseFrame=before.photoFrame;params.erase=[{radius:.03,points:[[.5,.5]]}];
+  params.removeBg=false;const after=processPhoto(src,params);
+  return {before:[before.width,before.height],after:[after.width,after.height],alpha:after.getContext('2d').getImageData(after.width/2,after.height/2,1,1).data[3],original:ctx.getImageData(200,200,1,1).data[3]};
+ },{processing,maskModule});
+ assert.deepEqual(fixedFrame.before,fixedFrame.after,'background processing must preserve eraser alignment');assert.equal(fixedFrame.alpha,0);assert.equal(fixedFrame.original,255);
+ const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=400;const ctx=c.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,400,400);return c.toDataURL().split(',')[1]});
+ await page.locator('#file').setInputFiles({name:'eraser-test.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+ await page.locator('#sheet.open').waitFor();
+ await page.locator('.photo-erase-prep [data-erase=toggle]').click();
+ const box=await page.locator('#previewCanvas').boundingBox();
+ const cx=box.x+box.width/2,cy=box.y+box.height/2;
+ const alpha=()=>page.locator('#previewCanvas').evaluate(c=>c.getContext('2d').getImageData(c.width/2,c.height/2,1,1).data[3]);
+ assert.equal(await alpha(),255);
+ async function drag(x,y){await page.mouse.move(x-20,y);await page.mouse.down();await page.mouse.move(x+20,y,{steps:12});await page.mouse.up()}
+ await drag(cx,cy);assert.equal(await alpha(),0,'preparation must erase under cursor');
+ await page.locator('.photo-erase-prep [data-erase=undo]').click();
+ await page.waitForFunction(()=>{const c=document.querySelector('#previewCanvas');return c.getContext('2d').getImageData(c.width/2,c.height/2,1,1).data[3]===255});
+ await drag(cx,cy);assert.equal(await alpha(),0);
+ await page.screenshot({path:output+'/eraser-preparation.png'});
+ await page.locator('#btnSheetOk').click();
+ await page.waitForFunction(()=>window.__app.pending);
+ const modelPoint=await page.evaluate(()=>{const a=window.__app,p=a.model.box.getCenter(a.root.position.clone());a.root.localToWorld(p);p.project(a.camera);return {x:(p.x+1)*innerWidth/2,y:(1-p.y)*innerHeight/2}});
+ await page.mouse.click(modelPoint.x,modelPoint.y);
+ await page.waitForFunction(()=>window.__app.decals.length===1);
+ assert.equal(await page.evaluate(()=>window.__app.decals[0].rec.params.erase.length),1);
+ await page.locator('#btnInsp').click();await page.locator('#actErasePhoto').click();
+ await page.locator('.photo-erase-bar').waitFor({state:'visible'});
+ const erased=()=>page.evaluate(()=>window.__app.decals[0].rec.params.erase.length);
+ await page.screenshot({path:output+'/eraser-model-before.png'});await page.mouse.click(modelPoint.x,modelPoint.y);assert.ok(await erased()>1,'model eraser must record a stroke');
+ await page.locator('.photo-erase-bar [data-erase=undo]').click();assert.equal(await erased(),1);
+ await page.mouse.click(modelPoint.x,modelPoint.y);const count=await erased();assert.ok(count>1);
+ await page.locator('.photo-erase-bar [data-erase=toggle]').click();
+ await page.reload();await page.waitForFunction(()=>window.__app?.decals.length===1);
+ assert.equal(await erased(),count,'erasure must survive reload');
+ await page.locator('#layers button').click();await page.locator('#btnInsp').click();
+ await page.locator('#rngRot').fill('45');await page.locator('#actFlip').click();
+ await page.locator('#actErasePhoto').click();await page.locator('.photo-erase-bar').waitFor({state:'visible'});
+ await page.locator('.photo-erase-bar input').fill('6');await page.waitForTimeout(800);
+ const inkPoint=await page.evaluate(()=>{
+  const a=window.__app,d=a.decals[0],g=d.mesh.geometry,ctx=d.canvas.getContext('2d');
+  for(let i=0;i<g.index.count;i+=3){
+   const ids=[0,1,2].map(n=>g.index.getX(i+n));
+   const u=ids.reduce((s,j)=>s+g.attributes.uv.getX(j),0)/3,v=ids.reduce((s,j)=>s+g.attributes.uv.getY(j),0)/3;
+   const uv=a.root.position.clone().set(u,v,1).applyMatrix3(d.uniforms.uvMat.value);
+   if(uv.x<.15||uv.x>.85||uv.y<.15||uv.y>.85)continue;
+   const x=Math.floor(uv.x*d.canvas.width),y=Math.floor((1-uv.y)*d.canvas.height);
+   if(ctx.getImageData(x,y,1,1).data[3]!==255)continue;
+   const p=a.root.position.clone().set(...['X','Y','Z'].map(axis=>ids.reduce((s,j)=>s+g.attributes.position['get'+axis](j),0)/3));
+   d.mesh.localToWorld(p);p.project(a.camera);
+   return {x:(p.x+1)*innerWidth/2,y:(1-p.y)*innerHeight/2,ix:x,iy:y};
+  }throw Error('No visible ink point');
+ });
+ await page.mouse.click(inkPoint.x,inkPoint.y);
+ assert.equal(await page.evaluate(p=>window.__app.decals[0].canvas.getContext('2d').getImageData(p.ix,p.iy,1,1).data[3],inkPoint),0,'rotated and mirrored photo erases at the ray hit');
+ await page.locator('.photo-erase-bar [data-erase=undo]').click();
+ assert.equal(await page.evaluate(p=>window.__app.decals[0].canvas.getContext('2d').getImageData(p.ix,p.iy,1,1).data[3],inkPoint),255);
+ // A second finger cancels the entire provisional erasure.
+ await page.evaluate(p=>{
+  const c=document.querySelector('#view');
+  const send=(type,id,x)=>c.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',button:0,bubbles:true,clientX:x,clientY:p.y}));
+  send('pointerdown',91,p.x);send('pointermove',91,p.x+2);send('pointerdown',92,p.x+8);send('pointerup',91,p.x);send('pointerup',92,p.x+8);
+ },inkPoint);
+ assert.equal(await erased(),count,'second finger cancels provisional erasure');
+ await page.locator('.photo-erase-bar [data-erase=toggle]').click();
+ await page.locator('#btnInsp').click();await page.locator('#actEdit').click();
+ await page.locator('.photo-erase-prep [data-erase=toggle]').click();
+ const previewBox=await page.locator('#previewCanvas').boundingBox();await drag(previewBox.x+previewBox.width/2,previewBox.y+previewBox.height/2);
+ await page.locator('#btnSheetCancel').click();assert.equal(await erased(),count,'cancel preparation preserves original mask');
+ await page.locator('#btnDeselect').click();await page.locator('#btnProjects').click();
+ const downloadEvent=page.waitForEvent('download');await page.locator('#paintExportProject').click();
+ const downloaded=await downloadEvent,project=JSON.parse(await fs.readFile(await downloaded.path(),'utf8'));
+ assert.equal(project.state.decals.body_male[0].params.erase.length,count);
+ await page.locator('.paint-close').click();
+ const imported=await browser.newPage({viewport:{width:430,height:850}});
+ await imported.goto(url);await imported.waitForFunction(()=>window.__app?.model);
+ await imported.getByRole('button',{name:'Пропустить',exact:true}).click();
+ await imported.locator('#btnProjects').click();imported.on('dialog',dialog=>dialog.accept());
+ await imported.locator('#paintProjectFile').setInputFiles({name:'test.primerka.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(project))});
+ await imported.waitForFunction(()=>window.__app?.decals.length===1);
+ assert.equal(await imported.evaluate(()=>window.__app.decals[0].rec.params.erase.length),count);
+ await imported.close();
+ // Duplicates own independent masks.
+ await page.locator('#layers button').click();await page.locator('#btnInsp').click();
+ await page.locator('#actDup').click();assert.equal(await page.evaluate(()=>window.__app.decals.length),2);
+ await page.locator('#actErasePhoto').click();await page.locator('.photo-erase-bar').waitFor({state:'visible'});
+ await drag(modelPoint.x,modelPoint.y-12);
+ assert.equal(await page.evaluate(()=>window.__app.decals[0].rec.params.erase.length),count);
+ await page.locator('.photo-erase-bar [data-erase=toggle]').click();
+ await page.setViewportSize({width:430,height:850});
+ await page.locator('#btnInsp').click();
+ await page.screenshot({path:output+'/eraser-mobile.png'});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ assert.deepEqual(errors,[]);
+ console.log('PASS: preparation erase/undo/cancel; model erase/undo; rotated/mirrored UV pixel accuracy; second-finger cancellation; reload; project export/import; independent duplicate; mobile layout; no page errors.');
+}finally{await browser.close()}

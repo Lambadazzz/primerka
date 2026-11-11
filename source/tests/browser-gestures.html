@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8"><title>Primerka gesture checks</title>
+<style>body{margin:0;font:16px system-ui}button{padding:12px}iframe{width:1280px;height:720px;border:0}pre{white-space:pre-wrap}</style>
+<button id="run">Проверить палец, стилус и фон</button><pre id="result">Ожидание</pre>
+<iframe src="./index.html"></iframe>
+<script type="module">
+const frame=document.querySelector('iframe'),result=document.querySelector('#result');
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+document.querySelector('#run').onclick=async()=>{
+ const results=[];const check=(value,label)=>{if(!value)throw Error(label);results.push('PASS '+label);result.textContent=results.join('\n')};
+ try{
+  const w=frame.contentWindow,d=w.document,app=w.__app;
+  d.querySelector('#segVariant [data-v="3"]').click();
+  d.querySelector('#segSex [data-v="male"]').click();
+  d.querySelector('#tilesPart [data-v="arm"]').click();
+  await wait(1000);d.querySelector('#btnPaint').click();await wait(300);
+  const canvas=d.querySelector('canvas#c')||d.querySelector('canvas');
+  const p=app.model.box.getCenter(app.camera.position.clone());app.root.localToWorld(p);p.project(app.camera);
+  const x=(p.x+1)*640,y=(1-p.y)*360;
+  const capture=canvas.setPointerCapture,release=canvas.releasePointerCapture;
+  canvas.setPointerCapture=()=>{};canvas.releasePointerCapture=()=>{};
+  const emit=(type,id,kind,px,py)=>canvas.dispatchEvent(new w.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:kind,isPrimary:true,clientX:px,clientY:py,button:type==='pointermove'?-1:0,buttons:type==='pointerup'?0:1,pressure:kind==='pen'?.65:.5}));
+  try{
+   for(const [kind,id] of [['touch',101],['pen',201]]){
+    const before=Number(d.querySelector('#paintSaveState').dataset.points||0),camera=app.camera.position.clone();
+    emit('pointerdown',id,kind,x,y);for(let i=1;i<=8;i++)emit('pointermove',id,kind,x+i,y+i*3);emit('pointerup',id,kind,x+8,y+24);await wait(100);
+    check(Number(d.querySelector('#paintSaveState').dataset.points)>before,kind+' draws a saved stroke on the model');
+    check(camera.distanceTo(app.camera.position)<1e-6,kind+' drawing does not rotate the model');
+   }
+   const before=Number(d.querySelector('#paintSaveState').dataset.points),camera=app.camera.position.clone();
+   emit('pointerdown',301,'touch',850,330);emit('pointermove',301,'touch',930,350);emit('pointerup',301,'touch',930,350);await wait(300);
+   check(camera.distanceTo(app.camera.position)>.01,'touch gesture from background rotates');
+   check(Number(d.querySelector('#paintSaveState').dataset.points)===before,'background gesture does not paint');
+   check(!d.querySelector('#paintUndo').disabled,'undo is available');
+   d.querySelector('#paintUndo').click();await wait(50);check(!d.querySelector('#paintRedo').disabled,'redo is available after undo');
+   d.querySelector('#paintRedo').click();await w.__paint.flush();check(d.querySelector('#paintSaveState').textContent.includes('Сохранено'),'drawing persisted');
+  }finally{canvas.setPointerCapture=capture;canvas.releasePointerCapture=release;}
+  result.textContent+='\nALL CHECKS PASSED';
+ }catch(error){result.textContent=results.join('\n')+'\nFAIL '+error.message;}
+};
+</script>

@@ -226,3 +226,15 @@ body:has(.primerka-tour[open]) #hint { visibility: hidden; }
   color: inherit;
 }
 .guide-restart small { display: block; color: #65574d; font-weight: 400; }
+
+.photo-erase-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--paint-ink); font: 12px Manrope, system-ui, sans-serif; }
+.photo-erase-controls button { min-height: 40px; padding: 8px 10px; border: 1px solid var(--paint-line); border-radius: 10px; background: #fffdf9; color: inherit; font: inherit; cursor: pointer; }
+.photo-erase-controls button[aria-pressed=true] { background: #ead9ca; border-color: #b86744; }
+.photo-erase-controls button:disabled { opacity: .4; cursor: default; }
+.photo-erase-controls label { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; flex: 1; min-width: 100px; }
+.photo-erase-controls input { grid-column: 1 / -1; width: 100%; min-height: 24px; margin: 0; accent-color: #95694d; }
+.photo-erase-bar { position: fixed; z-index: 6; left: 50%; transform: translateX(-50%); bottom: calc(var(--viewer-dock-height, 70px) + 28px + env(safe-area-inset-bottom)); width: min(430px, calc(100vw - 28px)); padding: 10px; box-sizing: border-box; border: 1px solid var(--paint-line); border-radius: 15px; background: var(--paint-paper); box-shadow: 0 4px 24px #32271922; }
+.photo-erase-bar[hidden], .photo-erase-cursor[hidden] { display: none; }
+.photo-erase-cursor { position: fixed; z-index: 100; border: 1px solid white; box-shadow: 0 0 0 1px #292724aa; border-radius: 50%; transform: translate(-50%,-50%); pointer-events: none; }
+.photo-erasing { touch-action: none; cursor: crosshair; }
+#actErasePhoto { grid-column: 1 / -1; }

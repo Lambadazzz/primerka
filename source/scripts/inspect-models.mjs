@@ -1,0 +1,5 @@
+import {GLTFLoader,MeshoptDecoder,BufferAttribute} from './geometry-runtime.mjs';
+import {readFile} from 'node:fs/promises';
+globalThis.ProgressEvent??=class{};
+const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+for(const sex of ['female','male']){const b=await readFile(`public/models/body_${sex}_2.glb`);const gltf=await loader.parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');gltf.scene.updateMatrixWorld(true);gltf.scene.traverse(m=>{if(!m.isMesh)return;const g=m.geometry.clone();for(const key of ["position","normal"]){const a=g.attributes[key],v=new Float32Array(a.count*3);for(let i=0;i<a.count;i++)v.set([a.getX(i),a.getY(i),a.getZ(i)],i*3);g.setAttribute(key,new BufferAttribute(v,3));}g.applyMatrix4(m.matrixWorld);g.computeBoundingBox();console.log(sex,m.name,g.attributes.position.count,JSON.stringify(g.boundingBox));const p=g.attributes.position;for(const y of [1.1,1.2,1.3,1.4,1.5]){let min=9,max=-9;for(let i=0;i<p.count;i++)if(Math.abs(p.getY(i)-y)<.01){min=Math.min(min,p.getX(i));max=Math.max(max,p.getX(i));}console.log(y,min,max)}})}

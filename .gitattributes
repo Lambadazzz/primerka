@@ -1,0 +1,7 @@
+assets/app.js -text
+assets/editor.css -text
+index.html -text
+sw.js -text
+README.md -text
+source/** text eol=lf
+source/tests/fixtures/*.png -text

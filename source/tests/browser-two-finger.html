@@ -1,0 +1,42 @@
+<!doctype html><meta charset="utf-8"><title>Two finger regression</title>
+<style>body{margin:0;font:15px system-ui}button{padding:10px}iframe{width:1280px;height:720px;border:0}pre{white-space:pre-wrap}</style>
+<button id="run">Проверить отмену, перемещение и щипок</button><pre id="result">Ожидание</pre><iframe src="./index.html"></iframe>
+<script type="module">
+const frame=document.querySelector('iframe'),result=document.querySelector('#result'),wait=ms=>new Promise(r=>setTimeout(r,ms));
+document.querySelector('#run').onclick=async()=>{
+ const results=[],check=(ok,label)=>{if(!ok)throw Error(label);results.push('PASS '+label);result.textContent=results.join('\n')};
+ try{
+ const w=frame.contentWindow,d=w.document,app=w.__app;
+ d.querySelector('#segVariant [data-v="3"]').click();d.querySelector('#segSex [data-v="male"]').click();d.querySelector('#tilesPart [data-v="arm"]').click();
+ await wait(800);d.querySelector('#btnPaint').click();await wait(200);
+ const canvas=d.querySelector('canvas'),capture=canvas.setPointerCapture,release=canvas.releasePointerCapture;
+ canvas.setPointerCapture=()=>{};canvas.releasePointerCapture=()=>{};
+ const emit=(type,id,kind,x,y)=>{const e=new w.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:kind,isPrimary:id===1,clientX:x,clientY:y,button:type==='pointermove'?-1:0,buttons:type==='pointerup'?0:1,pressure:1});return canvas.dispatchEvent(e)};
+ const point=()=>{const p=app.model.box.getCenter(app.camera.position.clone());app.root.localToWorld(p);p.project(app.camera);return {x:(p.x+1)*640,y:(1-p.y)*360}};
+ const count=()=>w.__paint.session.layers.reduce((n,l)=>n+l.patches.reduce((n,p)=>n+p.strokes.reduce((n,s)=>n+s.points.length,0),0),0);
+ try{
+  let {x,y}=point();
+  emit('pointerdown',1,'touch',x,y);for(let i=1;i<=15;i++)emit('pointermove',1,'touch',x,y+i*2);emit('pointerup',1,'touch',x,y+30);await w.__paint.flush();
+  check(count()>15,'touch move with empty coalesced events draws a full stroke');const drawn=count(),cam=app.camera.position.clone();
+  emit('pointerdown',1,'touch',x,y);emit('pointerdown',2,'touch',x+25,y);emit('pointerup',1,'touch',x,y);emit('pointerup',2,'touch',x+25,y);await wait(60);
+  check(count()<drawn,'two finger tap undoes previous completed stroke');check(cam.distanceTo(app.camera.position)<1e-7,'tap does not move the camera');
+  check(!d.querySelector('#paintRedo').disabled,'tap leaves redo available');d.querySelector('#paintRedo').click();check(count()===drawn,'redo restores exact stroke');
+  const before=count(),position=app.camera.position.clone(),target=app.controls.target.clone(),distance=position.distanceTo(target);
+  emit('pointerdown',1,'touch',x,y);emit('pointermove',1,'touch',x,y+5);emit('pointerdown',2,'touch',x+25,y);
+  emit('pointermove',1,'touch',x+40,y+25);emit('pointermove',2,'touch',x+65,y+20);
+  emit('pointerup',1,'touch',x+40,y+25);emit('pointermove',2,'touch',x+70,y+20);emit('pointerup',2,'touch',x+70,y+20);await wait(60);
+  check(count()===before,'second finger cancels provisional line and remaining finger cannot paint');
+  check(target.distanceTo(app.controls.target)>.01,'two fingers on body pan target');
+  check(position.clone().sub(target).normalize().distanceTo(app.camera.position.clone().sub(app.controls.target).normalize())<1e-6,'two finger pan does not rotate');
+  check(Math.abs(app.camera.position.distanceTo(app.controls.target)-distance)<1e-5,'parallel movement keeps scale');
+  ({x,y}=point());const zoomBefore=app.camera.position.distanceTo(app.controls.target);
+  emit('pointerdown',1,'touch',x-20,y);emit('pointerdown',2,'touch',x+20,y);emit('pointermove',1,'touch',x-50,y);emit('pointermove',2,'touch',x+50,y);emit('pointerup',1,'touch',x-50,y);emit('pointerup',2,'touch',x+50,y);
+  check(app.camera.position.distanceTo(app.controls.target)<zoomBefore*.6,'pinch apart zooms in');check(count()===before,'pinch does not draw or undo');
+  ({x,y}=point());const penBefore=count();emit('pointerdown',11,'pen',x,y);for(let i=1;i<=10;i++)emit('pointermove',11,'pen',x,y+i);emit('pointerup',11,'pen',x,y+10);check(count()>penBefore,'stylus still draws after navigation');
+  const backgroundBefore=count(),backgroundCamera=app.camera.position.clone();emit('pointerdown',1,'touch',850,330);emit('pointermove',1,'touch',930,340);emit('pointerup',1,'touch',930,340);
+  check(backgroundCamera.distanceTo(app.camera.position)>.01&&count()===backgroundBefore,'one finger from background rotates without drawing');
+  await w.__paint.flush();result.textContent+='\nALL CHECKS PASSED';
+ }finally{canvas.setPointerCapture=capture;canvas.releasePointerCapture=release;}
+ }catch(e){result.textContent=results.join('\n')+'\nFAIL '+e.stack;}
+};
+</script>

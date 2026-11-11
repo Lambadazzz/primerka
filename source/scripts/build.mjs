@@ -1,0 +1,15 @@
+import {mkdir,cp,readFile,writeFile,readdir} from 'node:fs/promises';
+import {createRequire} from 'node:module';import {createHash} from 'node:crypto';
+const require=createRequire(import.meta.url);const {build}=require('esbuild');
+const android=process.argv.includes('--android');
+const output=android?'dist-android':'dist';
+await mkdir(output,{recursive:true});await cp('public',output,{recursive:true});
+const models=(await readdir('public/models')).sort();
+const html=await readFile('index.html','utf8');
+await writeFile(output+'/index.html',android?html.replaceAll('Примерка Юлки','Примерка'):html);
+await cp('README.md',output+'/README.md');
+await cp('src/editor.css',output+'/assets/editor.css');
+await build({entryPoints:['src/main.js'],bundle:true,format:'esm',target:'es2022',minify:true,outfile:output+'/assets/app.js',legalComments:'eof'});
+const modelHash=createHash('sha256');for(const name of models)modelHash.update(await readFile(output+'/models/'+name));
+const hash=createHash('sha256').update(modelHash.digest()).update(await readFile(output+'/assets/app.js')).update(await readFile(output+'/index.html')).update(await readFile(output+'/assets/editor.css')).digest('hex').slice(0,12);
+let sw=await readFile('src/service-worker.js','utf8');await writeFile(output+'/sw.js',sw.replaceAll('__VERSION__',hash).replace('__SHELL__',JSON.stringify(['./','./index.html','./assets/app.js','./assets/editor.css','./assets/index-dcXq09Rf.css','./icon.svg','./manifest.webmanifest',...models.map(name=>'./models/'+name),...(await readdir('public/assets')).filter(name=>name.endsWith('.woff2')).map(name=>'./assets/'+name)])));console.log('Primerka build',hash);

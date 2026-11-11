@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><title>Continuous stroke regression</title>
+<style>body{margin:0;font:15px system-ui}button{padding:10px}iframe{width:1280px;height:720px;border:0}pre{white-space:pre-wrap}</style>
+<button id="run">Длинная линия через стыки</button><pre id="result">Ожидание</pre><iframe src="./index.html"></iframe>
+<script type="module">
+const frame=document.querySelector('iframe'),result=document.querySelector('#result');
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+document.querySelector('#run').onclick=async()=>{
+ try{
+ const w=frame.contentWindow,d=w.document,app=w.__app;
+ d.querySelector('#segVariant [data-v="3"]').click();d.querySelector('#segSex [data-v="male"]').click();d.querySelector('#tilesPart [data-v="arm"]').click();
+ await wait(800);d.querySelector('#btnPaint').click();await wait(200);
+ const size=d.querySelector('#paintSize');size.value=3;size.dispatchEvent(new w.Event('input',{bubbles:true}));
+ const smooth=d.querySelector('#paintSmooth');smooth.value=65;smooth.dispatchEvent(new w.Event('input',{bubbles:true}));
+ const p=app.model.box.getCenter(app.camera.position.clone());app.root.localToWorld(p);p.project(app.camera);
+ const x=(p.x+1)*640,y=(1-p.y)*360,canvas=d.querySelector('canvas'),capture=canvas.setPointerCapture,release=canvas.releasePointerCapture;
+ canvas.setPointerCapture=()=>{};canvas.releasePointerCapture=()=>{};
+ const emit=(type,px,py)=>{const e=new w.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:777,pointerType:'pen',isPrimary:true,clientX:px,clientY:py,button:type==='pointermove'?-1:0,buttons:type==='pointerup'?0:1,pressure:1});e.getCoalescedEvents=()=>[e];return canvas.dispatchEvent(e)};
+ try{
+  emit('pointerdown',x,y-140);
+  for(let i=1;i<=140;i++){emit('pointermove',x,y-140+i*2);if(i%20===0)await wait(20);}
+  emit('pointerup',x,y+140);await w.__paint.flush();await wait(100);
+ }finally{canvas.setPointerCapture=capture;canvas.releasePointerCapture=release;}
+ result.textContent=JSON.stringify({x,y0:y-140,y1:y+140,patches:w.__paint.patches.size,points:[...w.__paint.patches.values()].map(p=>p.record.strokes.flatMap(s=>s.points).length)});
+ d.querySelector('#paintFiles').click();
+ }catch(e){result.textContent='FAIL '+e.stack;}
+};
+</script>

@@ -1,0 +1,6 @@
+source/node_modules/
+source/public/
+source/dist/
+source/dist-android/
+source/.npm-cache/
+source/.qa-output/
